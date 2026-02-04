@@ -1,0 +1,9 @@
+# ROCprof Skill - Python Dependencies
+# =====================================
+
+# PyTorch with ROCm (install separately based on your ROCm version)
+# See: https://pytorch.org/get-started/locally/
+# Example: pip install torch --index-url https://download.pytorch.org/whl/rocm6.2
+
+# Optional dependencies for analysis
+numpy>=1.20.0
