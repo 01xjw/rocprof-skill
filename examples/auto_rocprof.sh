@@ -1,22 +1,22 @@
 #!/bin/bash
 # ============================================================================
-# ROCm/HIP 自动化性能分析脚本
-# 支持 HIP 可执行文件和 PyTorch 模型的 profiling
+# ROCm/HIP Automated Performance Analysis Script
+# Supports profiling for HIP executables and PyTorch models
 # ============================================================================
 #
-# 使用方法:
+# Usage:
 #   ./auto_rocprof.sh <executable_or_script> [output_prefix]
 #   ./auto_rocprof.sh --pytorch <model.py> [output_prefix]
 #   ./auto_rocprof.sh --pytorch-dir <models_dir> [output_prefix]
 #
-# 示例:
+# Examples:
 #   ./auto_rocprof.sh ./hip_matmul my_report
 #   ./auto_rocprof.sh --pytorch 22_Tanh.py tanh_profile
 #   ./auto_rocprof.sh --pytorch-dir ./kernel_test/level1 level1_profile
 
 set -e
 
-# 颜色定义
+# Color definitions
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -34,45 +34,45 @@ print_header() { echo -e "${CYAN}$1${NC}"; }
 show_help() {
     cat << 'EOF'
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                    🚀 ROCm/HIP 自动化性能分析脚本                            ║
+║                    ROCm/HIP Automated Performance Analysis Script            ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
-使用方法:
+Usage:
     ./auto_rocprof.sh <executable> [output_prefix]
     ./auto_rocprof.sh --pytorch <model.py> [output_prefix]
     ./auto_rocprof.sh --pytorch-dir <models_dir> [output_prefix]
 
-选项:
-    --pytorch, -p       分析 PyTorch 模型文件
-    --pytorch-dir, -pd  分析目录中的所有 PyTorch 模型
-    --warmup, -w        PyTorch 预热迭代次数 (默认: 3)
-    --iterations, -i    PyTorch 正式迭代次数 (默认: 10)
-    --domains           rocprof-sys domains (默认: kernel_dispatch)
-    --help, -h          显示此帮助信息
+Options:
+    --pytorch, -p       Profile a PyTorch model file
+    --pytorch-dir, -pd  Profile all PyTorch models in a directory
+    --warmup, -w        PyTorch warmup iterations (default: 3)
+    --iterations, -i    PyTorch profiling iterations (default: 10)
+    --domains           rocprof-sys domains (default: kernel_dispatch)
+    --help, -h          Show this help message
 
-示例:
-    # HIP 可执行文件
+Examples:
+    # HIP executable
     ./auto_rocprof.sh ./hip_matmul my_analysis
 
-    # PyTorch 单个模型
+    # Single PyTorch model
     ./auto_rocprof.sh --pytorch 22_Tanh.py tanh_profile
 
-    # PyTorch 模型目录
+    # PyTorch model directory
     ./auto_rocprof.sh --pytorch-dir ./models all_models
 
-输出文件:
-    📁 rocprof_reports/<prefix>/
-    ├── perfetto-trace-*.proto    # Perfetto trace (上传到 ui.perfetto.dev)
-    ├── wall_clock-*.txt          # 时间统计
-    ├── sampling_*.txt            # 采样数据
-    ├── metadata-*.json           # 运行元数据
-    └── functions-*.json          # 函数信息
+Output files:
+    rocprof_reports/<prefix>/
+    ├── perfetto-trace-*.proto    # Perfetto trace (upload to ui.perfetto.dev)
+    ├── wall_clock-*.txt          # Time statistics
+    ├── sampling_*.txt            # Sampling data
+    ├── metadata-*.json           # Run metadata
+    └── functions-*.json          # Function information
 
 EOF
 }
 
 # ============================================================================
-# 参数解析
+# Argument Parsing
 # ============================================================================
 
 MODE="executable"  # executable | pytorch | pytorch-dir
@@ -112,7 +112,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -*)
-            print_error "未知选项: $1"
+            print_error "Unknown option: $1"
             show_help
             exit 1
             ;;
@@ -127,64 +127,64 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# 验证参数
+# Validate arguments
 if [ -z "$TARGET" ]; then
-    print_error "请指定目标文件或目录"
+    print_error "Please specify a target file or directory"
     show_help
     exit 1
 fi
 
-# 设置默认前缀
+# Set default prefix
 if [ -z "$PREFIX" ]; then
     PREFIX="rocprof_$(date +%Y%m%d_%H%M%S)"
 fi
 
 # ============================================================================
-# 环境检查
+# Environment Check
 # ============================================================================
 
-# 检查 rocprof-sys
+# Check rocprof-sys
 if ! command -v rocprof-sys-run &> /dev/null; then
     if [ -x "/opt/rocm/bin/rocprof-sys-run" ]; then
         export PATH="/opt/rocm/bin:$PATH"
     else
-        print_error "rocprof-sys-run 未找到"
-        print_info "请确保 ROCm 已正确安装: export PATH=\$PATH:/opt/rocm/bin"
+        print_error "rocprof-sys-run not found"
+        print_info "Please ensure ROCm is properly installed: export PATH=\$PATH:/opt/rocm/bin"
         exit 1
     fi
 fi
 
-# 检查 Python (PyTorch 模式)
+# Check Python (PyTorch mode)
 if [[ "$MODE" == "pytorch"* ]]; then
     if ! command -v python3 &> /dev/null && ! command -v python &> /dev/null; then
-        print_error "Python 未找到"
+        print_error "Python not found"
         exit 1
     fi
     PYTHON_CMD=$(command -v python3 || command -v python)
 fi
 
-# 创建报告目录
+# Create report directory
 mkdir -p "$REPORT_DIR"
 
 # ============================================================================
-# 主逻辑
+# Main Logic
 # ============================================================================
 
 print_header "
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                    🚀 ROCm/HIP 自动化性能分析                                ║
+║                    ROCm/HIP Automated Performance Analysis                   ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 "
 
-echo "配置信息:"
-echo "  模式:        $MODE"
-echo "  目标:        $TARGET"
-echo "  输出前缀:    $PREFIX"
-echo "  报告目录:    $REPORT_DIR"
+echo "Configuration:"
+echo "  Mode:        $MODE"
+echo "  Target:      $TARGET"
+echo "  Prefix:      $PREFIX"
+echo "  Report dir:  $REPORT_DIR"
 if [[ "$MODE" == "pytorch"* ]]; then
     echo "  Python:      $PYTHON_CMD"
-    echo "  预热次数:    $WARMUP"
-    echo "  迭代次数:    $ITERATIONS"
+    echo "  Warmup:      $WARMUP"
+    echo "  Iterations:  $ITERATIONS"
 fi
 echo "  Domains:     $DOMAINS"
 echo ""
@@ -192,19 +192,19 @@ echo ""
 OUTPUT_DIR="${REPORT_DIR}/${PREFIX}"
 
 # ============================================================================
-# 执行 Profiling
+# Execute Profiling
 # ============================================================================
 
 case $MODE in
     "executable")
-        # HIP 可执行文件模式
+        # HIP executable mode
         if [ ! -f "$TARGET" ]; then
-            print_error "文件不存在: $TARGET"
+            print_error "File not found: $TARGET"
             exit 1
         fi
-        
-        print_info "📊 开始 HIP 可执行文件分析..."
-        
+
+        print_info "Starting HIP executable analysis..."
+
         rocprof-sys-run \
             --trace \
             --profile \
@@ -213,22 +213,22 @@ case $MODE in
             -o "$OUTPUT_DIR" \
             -- "$TARGET" 2>&1 | tee "${REPORT_DIR}/${PREFIX}_rocprof.log"
         ;;
-        
+
     "pytorch")
-        # PyTorch 单文件模式
+        # PyTorch single file mode
         if [ ! -f "$TARGET" ]; then
-            print_error "文件不存在: $TARGET"
+            print_error "File not found: $TARGET"
             exit 1
         fi
-        
+
         TARGET_PATH=$(realpath "$TARGET")
         TARGET_DIR=$(dirname "$TARGET_PATH")
-        
-        print_info "📊 开始 PyTorch 模型分析: $TARGET"
-        
-        # 创建临时运行脚本
+
+        print_info "Starting PyTorch model analysis: $TARGET"
+
+        # Create temporary run script
         TEMP_SCRIPT=$(mktemp /tmp/rocprof_pytorch_XXXXXX.py)
-        
+
         cat > "$TEMP_SCRIPT" << PYTHON_EOF
 import os
 import sys
@@ -268,7 +268,7 @@ with torch.no_grad():
 
 print("Done!")
 PYTHON_EOF
-        
+
         rocprof-sys-run \
             --trace \
             --profile \
@@ -276,24 +276,24 @@ PYTHON_EOF
             --rocm-domains "$DOMAINS" \
             -o "$OUTPUT_DIR" \
             -- "$PYTHON_CMD" "$TEMP_SCRIPT" 2>&1 | tee "${REPORT_DIR}/${PREFIX}_rocprof.log"
-        
+
         rm -f "$TEMP_SCRIPT"
         ;;
-        
+
     "pytorch-dir")
-        # PyTorch 目录模式
+        # PyTorch directory mode
         if [ ! -d "$TARGET" ]; then
-            print_error "目录不存在: $TARGET"
+            print_error "Directory not found: $TARGET"
             exit 1
         fi
-        
+
         TARGET_DIR=$(realpath "$TARGET")
-        
-        print_info "📊 开始 PyTorch 目录分析: $TARGET"
-        
-        # 创建临时运行脚本
+
+        print_info "Starting PyTorch directory analysis: $TARGET"
+
+        # Create temporary run script
         TEMP_SCRIPT=$(mktemp /tmp/rocprof_pytorch_dir_XXXXXX.py)
-        
+
         cat > "$TEMP_SCRIPT" << PYTHON_EOF
 import os
 import sys
@@ -313,37 +313,37 @@ files = sorted([f for f in glob.glob("*.py") if not f.startswith(('run_', 'test_
 print(f"Found {len(files)} models")
 
 for f in files:
-    print(f"\\n{'='*60}")
+    print(f"\n{'='*60}")
     print(f"Model: {f}")
     print('='*60)
-    
+
     try:
         spec = spec_from_file_location('m', f)
         mod = module_from_spec(spec)
         spec.loader.exec_module(mod)
-        
+
         model = mod.Model(*mod.get_init_inputs()).cuda().eval()
         inputs = [x.cuda() if isinstance(x, torch.Tensor) else x for x in mod.get_inputs()]
-        
+
         if inputs and isinstance(inputs[0], torch.Tensor):
             print(f"Input: {inputs[0].shape}")
-        
+
         with torch.no_grad():
             for _ in range($WARMUP):
                 _ = model(*inputs)
                 torch.cuda.synchronize()
-            
+
             for _ in range($ITERATIONS):
                 _ = model(*inputs)
                 torch.cuda.synchronize()
-        
+
         print("OK")
     except Exception as e:
         print(f"Error: {e}")
 
-print("\\nAll done!")
+print("\nAll done!")
 PYTHON_EOF
-        
+
         rocprof-sys-run \
             --trace \
             --profile \
@@ -351,46 +351,46 @@ PYTHON_EOF
             --rocm-domains "$DOMAINS" \
             -o "$OUTPUT_DIR" \
             -- "$PYTHON_CMD" "$TEMP_SCRIPT" 2>&1 | tee "${REPORT_DIR}/${PREFIX}_rocprof.log"
-        
+
         rm -f "$TEMP_SCRIPT"
         ;;
 esac
 
 # ============================================================================
-# 生成报告
+# Generate Report
 # ============================================================================
 
 echo ""
 print_header "
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                            📊 分析完成                                        ║
+║                            Analysis Complete                                 ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 "
 
-# 查找输出子目录
+# Find output subdirectory
 RESULT_SUBDIR=$(ls -td "$OUTPUT_DIR"/*/ 2>/dev/null | head -1)
 
 if [ -n "$RESULT_SUBDIR" ]; then
-    print_success "结果目录: $RESULT_SUBDIR"
+    print_success "Results directory: $RESULT_SUBDIR"
     echo ""
-    echo "生成的文件:"
+    echo "Generated files:"
     ls -lh "$RESULT_SUBDIR" 2>/dev/null | grep -v "^total" | head -20 | while read line; do
         echo "  $line"
     done
-    
-    # 查找 Perfetto trace
+
+    # Find Perfetto trace
     PERFETTO_FILE=$(find "$RESULT_SUBDIR" -name "perfetto*.proto" 2>/dev/null | head -1)
     METADATA_FILE=$(find "$RESULT_SUBDIR" -name "metadata*.json" 2>/dev/null | head -1)
-    
-    # 生成摘要
+
+    # Generate summary
     if [ -n "$METADATA_FILE" ]; then
         echo ""
-        print_info "📋 Metadata 摘要:"
+        print_info "Metadata summary:"
         python3 -c "
 import json
 with open('$METADATA_FILE') as f:
     data = json.load(f)
-    
+
 rs = data.get('rocprofiler-systems', {})
 info = rs.get('metadata', {}).get('info', {})
 
@@ -398,58 +398,58 @@ print(f\"  ROCm Version: {info.get('ROCPROFSYS_ROCM_VERSION', 'N/A')}\")
 print(f\"  CPU: {info.get('CPU_MODEL', 'N/A')}\")
 " 2>/dev/null || true
     fi
-    
+
     echo ""
     if [ -n "$PERFETTO_FILE" ]; then
-        print_info "📊 可视化方法:"
-        echo "   1. 打开 https://ui.perfetto.dev/"
-        echo "   2. 点击 'Open trace file'"
-        echo "   3. 上传: $PERFETTO_FILE"
+        print_info "Visualization:"
+        echo "   1. Open https://ui.perfetto.dev/"
+        echo "   2. Click 'Open trace file'"
+        echo "   3. Upload: $PERFETTO_FILE"
     fi
-    
-    # 生成 README
+
+    # Generate README
     cat > "${RESULT_SUBDIR}/README.md" << EOF
-# ROCm Profiling 结果
+# ROCm Profiling Results
 
-**生成时间**: $(date)
-**目标**: $TARGET
-**模式**: $MODE
+**Generated**: $(date)
+**Target**: $TARGET
+**Mode**: $MODE
 
-## 📁 文件说明
+## Files
 
-| 文件 | 说明 |
-|------|------|
-| \`perfetto-trace-*.proto\` | Perfetto 格式 trace 文件 |
-| \`metadata-*.json\` | 运行元数据 |
-| \`wall_clock-*.txt\` | 时间统计 |
-| \`sampling_*.txt\` | 采样数据 |
-| \`functions-*.json\` | 函数信息 |
+| File | Description |
+|------|-------------|
+| \`perfetto-trace-*.proto\` | Perfetto format trace file |
+| \`metadata-*.json\` | Run metadata |
+| \`wall_clock-*.txt\` | Time statistics |
+| \`sampling_*.txt\` | Sampling data |
+| \`functions-*.json\` | Function information |
 
-## 📊 查看方法
+## Viewing Results
 
-### Perfetto UI (推荐)
-1. 打开 https://ui.perfetto.dev/
-2. 上传 \`$(basename "$PERFETTO_FILE" 2>/dev/null || echo "perfetto-trace-*.proto")\`
+### Perfetto UI (Recommended)
+1. Open https://ui.perfetto.dev/
+2. Upload \`$(basename "$PERFETTO_FILE" 2>/dev/null || echo "perfetto-trace-*.proto")\`
 
-### 命令行
+### Command Line
 \`\`\`bash
-# 查看时间统计
+# View time statistics
 cat wall_clock-*.txt
 
-# 查看采样数据
+# View sampling data
 cat sampling_percent-*.txt
 \`\`\`
 
-## 🔧 重新采集
+## Re-collect
 \`\`\`bash
 $(basename "$0") $TARGET $PREFIX
 \`\`\`
 EOF
-    
-    print_success "README 已生成: ${RESULT_SUBDIR}/README.md"
+
+    print_success "README generated: ${RESULT_SUBDIR}/README.md"
 fi
 
 echo ""
-print_info "日志: ${REPORT_DIR}/${PREFIX}_rocprof.log"
+print_info "Log: ${REPORT_DIR}/${PREFIX}_rocprof.log"
 echo ""
-print_success "🎉 完成!"
+print_success "Done!"

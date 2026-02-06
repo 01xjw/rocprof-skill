@@ -1,12 +1,12 @@
 #!/bin/bash
 # ROCm PyTorch Kernel Profiler
-# 专门用于 PyTorch 模型的 rocprof-sys 性能分析
+# Dedicated rocprof-sys profiling for PyTorch models
 #
-# 使用方法:
+# Usage:
 #   ./rocprof_pytorch.sh <model_file.py> [output_dir]
 #   ./rocprof_pytorch.sh --dir <models_dir> [output_dir]
 #
-# 示例:
+# Examples:
 #   ./rocprof_pytorch.sh 22_Tanh.py ./results
 #   ./rocprof_pytorch.sh --dir ./kernel_test/level1 ./results
 
@@ -14,7 +14,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 颜色定义
+# Color definitions
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -30,40 +30,40 @@ print_header() { echo -e "${CYAN}$1${NC}"; }
 
 show_help() {
     cat << EOF
-🚀 ROCm PyTorch Kernel Profiler
+ROCm PyTorch Kernel Profiler
 
-使用方法:
+Usage:
     $0 <model_file.py> [output_dir]
     $0 --dir <models_dir> [output_dir]
     $0 --help
 
-选项:
-    --dir, -d       指定包含模型文件的目录
-    --warmup, -w    预热迭代次数 (默认: 3)
-    --iterations, -i  正式运行迭代次数 (默认: 10)
-    --domains       rocprof-sys domains (默认: kernel_dispatch)
-    --help, -h      显示此帮助信息
+Options:
+    --dir, -d       Specify directory containing model files
+    --warmup, -w    Number of warmup iterations (default: 3)
+    --iterations, -i  Number of profiling iterations (default: 10)
+    --domains       rocprof-sys domains (default: kernel_dispatch)
+    --help, -h      Show this help message
 
-示例:
-    # 单个模型
+Examples:
+    # Single model
     $0 22_Tanh.py ./results
 
-    # 目录中所有模型
+    # All models in a directory
     $0 --dir ./models ./results
 
-    # 自定义参数
+    # Custom parameters
     $0 --warmup 5 --iterations 20 model.py ./results
 
-输出:
-    - perfetto-trace-*.proto    Perfetto 格式 trace (可在 ui.perfetto.dev 查看)
-    - wall_clock-*.txt          时间统计
-    - sampling_*.txt            采样数据
-    - metadata-*.json           运行元数据
+Output:
+    - perfetto-trace-*.proto    Perfetto format trace (viewable at ui.perfetto.dev)
+    - wall_clock-*.txt          Time statistics
+    - sampling_*.txt            Sampling data
+    - metadata-*.json           Run metadata
 
 EOF
 }
 
-# 默认参数
+# Default parameters
 WARMUP=3
 ITERATIONS=10
 DOMAINS="kernel_dispatch"
@@ -71,7 +71,7 @@ OUTPUT_DIR=""
 MODEL_FILE=""
 MODEL_DIR=""
 
-# 解析参数
+# Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         --help|-h)
@@ -95,7 +95,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -*)
-            print_error "未知选项: $1"
+            print_error "Unknown option: $1"
             show_help
             exit 1
             ;;
@@ -110,32 +110,32 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# 验证参数
+# Validate arguments
 if [ -z "$MODEL_FILE" ] && [ -z "$MODEL_DIR" ]; then
-    print_error "请指定模型文件或目录"
+    print_error "Please specify a model file or directory"
     show_help
     exit 1
 fi
 
-# 设置默认输出目录
+# Set default output directory
 if [ -z "$OUTPUT_DIR" ]; then
     OUTPUT_DIR="./rocprof_results_$(date +%Y%m%d_%H%M%S)"
 fi
 
-# 检查 rocprof-sys
+# Check rocprof-sys
 if ! command -v rocprof-sys-run &> /dev/null; then
     if [ -x "/opt/rocm/bin/rocprof-sys-run" ]; then
         export PATH="/opt/rocm/bin:$PATH"
     else
-        print_error "rocprof-sys-run 未找到"
-        print_info "请确保 ROCm 已正确安装，或运行: export PATH=\$PATH:/opt/rocm/bin"
+        print_error "rocprof-sys-run not found"
+        print_info "Please ensure ROCm is properly installed, or run: export PATH=\$PATH:/opt/rocm/bin"
         exit 1
     fi
 fi
 
-# 检查 Python
+# Check Python
 if ! command -v python &> /dev/null && ! command -v python3 &> /dev/null; then
-    print_error "Python 未找到"
+    print_error "Python not found"
     exit 1
 fi
 
@@ -143,41 +143,41 @@ PYTHON_CMD=$(command -v python3 || command -v python)
 
 print_header "
 ╔══════════════════════════════════════════════════════════════╗
-║          🚀 ROCm PyTorch Kernel Profiler                     ║
+║          ROCm PyTorch Kernel Profiler                        ║
 ╚══════════════════════════════════════════════════════════════╝
 "
 
-echo "配置信息:"
+echo "Configuration:"
 echo "  Python:      $PYTHON_CMD"
 echo "  rocprof-sys: $(which rocprof-sys-run)"
-echo "  输出目录:    $OUTPUT_DIR"
-echo "  预热次数:    $WARMUP"
-echo "  迭代次数:    $ITERATIONS"
+echo "  Output dir:  $OUTPUT_DIR"
+echo "  Warmup:      $WARMUP"
+echo "  Iterations:  $ITERATIONS"
 echo "  Domains:     $DOMAINS"
 echo ""
 
-# 创建临时运行脚本
+# Create temporary run script
 TEMP_SCRIPT=$(mktemp /tmp/rocprof_runner_XXXXXX.py)
 
 if [ -n "$MODEL_FILE" ]; then
-    # 单个文件模式
+    # Single file mode
     if [ ! -f "$MODEL_FILE" ]; then
-        print_error "文件不存在: $MODEL_FILE"
+        print_error "File not found: $MODEL_FILE"
         exit 1
     fi
-    
+
     MODEL_PATH=$(realpath "$MODEL_FILE")
     MODEL_NAME=$(basename "$MODEL_FILE" .py)
     WORK_DIR=$(dirname "$MODEL_PATH")
-    
+
     print_info "Profiling: $MODEL_FILE"
-    
+
     cat > "$TEMP_SCRIPT" << PYTHON_EOF
 import os
 import sys
 import torch
 
-# 切换到模型文件所在目录
+# Switch to model file directory
 os.chdir("$WORK_DIR")
 sys.path.insert(0, "$WORK_DIR")
 
@@ -199,7 +199,7 @@ if inputs and isinstance(inputs[0], torch.Tensor):
     print(f"Input shape: {inputs[0].shape}, dtype: {inputs[0].dtype}")
 
 # Warmup
-print(f"\\nWarmup ({$WARMUP} iterations)...")
+print(f"\nWarmup ({$WARMUP} iterations)...")
 with torch.no_grad():
     for i in range($WARMUP):
         _ = model(*inputs)
@@ -216,16 +216,16 @@ print("Done!")
 PYTHON_EOF
 
 else
-    # 目录模式
+    # Directory mode
     if [ ! -d "$MODEL_DIR" ]; then
-        print_error "目录不存在: $MODEL_DIR"
+        print_error "Directory not found: $MODEL_DIR"
         exit 1
     fi
-    
+
     MODEL_DIR_PATH=$(realpath "$MODEL_DIR")
-    
+
     print_info "Profiling directory: $MODEL_DIR"
-    
+
     cat > "$TEMP_SCRIPT" << PYTHON_EOF
 import os
 import sys
@@ -249,45 +249,45 @@ model_files = sorted([
 print(f"Found {len(model_files)} model files")
 
 for model_file in model_files:
-    print(f"\\n{'='*60}")
+    print(f"\n{'='*60}")
     print(f"Profiling: {model_file}")
     print('='*60)
-    
+
     try:
         spec = spec_from_file_location('model_module', model_file)
         mod = module_from_spec(spec)
         spec.loader.exec_module(mod)
-        
+
         model = mod.Model(*mod.get_init_inputs()).cuda().eval()
         inputs = [x.cuda() if isinstance(x, torch.Tensor) else x for x in mod.get_inputs()]
-        
+
         print(f"Model: {type(model).__name__}")
         if inputs and isinstance(inputs[0], torch.Tensor):
             print(f"Input shape: {inputs[0].shape}, dtype: {inputs[0].dtype}")
-        
+
         # Warmup
         with torch.no_grad():
             for i in range($WARMUP):
                 _ = model(*inputs)
                 torch.cuda.synchronize()
-        
+
         # Profile
         with torch.no_grad():
             for i in range($ITERATIONS):
                 _ = model(*inputs)
                 torch.cuda.synchronize()
-        
+
         print("OK")
-        
+
     except Exception as e:
         print(f"Error: {e}")
         continue
 
-print("\\nAll done!")
+print("\nAll done!")
 PYTHON_EOF
 fi
 
-# 运行 rocprof-sys
+# Run rocprof-sys
 print_info "Starting rocprof-sys profiling..."
 echo ""
 
@@ -301,36 +301,36 @@ rocprof-sys-run \
     -o "$OUTPUT_DIR" \
     -- "$PYTHON_CMD" "$TEMP_SCRIPT" 2>&1 | tee "${OUTPUT_DIR}/rocprof.log"
 
-# 清理临时文件
+# Clean up temporary files
 rm -f "$TEMP_SCRIPT"
 
-# 输出结果
+# Output results
 echo ""
 print_header "
 ╔══════════════════════════════════════════════════════════════╗
-║                    📊 Profiling 完成                          ║
+║                    Profiling Complete                         ║
 ╚══════════════════════════════════════════════════════════════╝
 "
 
-# 查找输出文件
+# Find output files
 RESULT_SUBDIR=$(ls -td "$OUTPUT_DIR"/*/ 2>/dev/null | head -1)
 if [ -n "$RESULT_SUBDIR" ]; then
-    print_success "结果目录: $RESULT_SUBDIR"
+    print_success "Results directory: $RESULT_SUBDIR"
     echo ""
-    echo "生成的文件:"
+    echo "Generated files:"
     ls -lh "$RESULT_SUBDIR" 2>/dev/null | grep -v "^total" | while read line; do
         echo "  $line"
     done
-    
-    # 查找 perfetto trace
+
+    # Find perfetto trace
     PERFETTO_FILE=$(find "$RESULT_SUBDIR" -name "perfetto*.proto" 2>/dev/null | head -1)
     if [ -n "$PERFETTO_FILE" ]; then
         echo ""
-        print_info "📊 可视化: 打开 https://ui.perfetto.dev/ 上传 $PERFETTO_FILE"
+        print_info "Visualization: Open https://ui.perfetto.dev/ and upload $PERFETTO_FILE"
     fi
 else
-    print_warning "未找到输出子目录，请检查 $OUTPUT_DIR"
+    print_warning "Output subdirectory not found, please check $OUTPUT_DIR"
 fi
 
 echo ""
-print_info "日志文件: ${OUTPUT_DIR}/rocprof.log"
+print_info "Log file: ${OUTPUT_DIR}/rocprof.log"

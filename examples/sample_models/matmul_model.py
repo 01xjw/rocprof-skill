@@ -1,6 +1,6 @@
 """
-示例模型: 矩阵乘法
-用于演示 rocprof-skill 的使用
+Sample model: Matrix multiplication
+Demonstrates rocprof-skill usage
 """
 
 import torch
@@ -13,7 +13,7 @@ class Model(nn.Module):
     """
     def __init__(self):
         super(Model, self).__init__()
-    
+
     def forward(self, A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
         """
         Performs the matrix multiplication.
@@ -28,17 +28,17 @@ class Model(nn.Module):
         return torch.matmul(A, B)
 
 
-# 模型参数
+# Model parameters
 N = 4096
 
 
 def get_inputs():
-    """返回模型输入"""
+    """Returns model inputs"""
     A = torch.rand(N, N, dtype=torch.float16)
     B = torch.rand(N, N, dtype=torch.float16)
     return [A, B]
 
 
 def get_init_inputs():
-    """返回模型初始化参数"""
+    """Returns model initialization parameters"""
     return []  # No special initialization inputs needed

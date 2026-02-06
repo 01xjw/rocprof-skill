@@ -1,175 +1,298 @@
 # 🚀 ROCprof Skill
 
-> AMD ROCm GPU 性能分析工具集，专为 HIP 应用和 PyTorch 模型设计
+> AMD ROCm GPU performance analysis toolkit, designed for HIP applications and PyTorch models
 
 [![ROCm](https://img.shields.io/badge/ROCm-7.x-red.svg)](https://rocm.docs.amd.com/)
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## 📋 功能特性
+## 📋 Features
 
-- ✅ **HIP 可执行文件分析** - 支持原生 HIP 应用的 kernel 级别分析
-- ✅ **PyTorch 模型分析** - 自动化 PyTorch 算子性能采集
-- ✅ **批量分析** - 支持目录级批量模型分析
-- ✅ **Perfetto 可视化** - 生成标准 Perfetto trace 文件
-- ✅ **自动报告生成** - 自动生成分析摘要和使用说明
+- ✅ **HIP Executable Analysis** - Kernel-level profiling for native HIP applications
+- ✅ **PyTorch Model Analysis** - Automated PyTorch operator performance collection
+- ✅ **Triton Kernel Analysis** - Built-in Triton kernel matching and profiling
+- ✅ **Batch Analysis** - Directory-level batch model analysis
+- ✅ **Perfetto Visualization** - Generates standard Perfetto trace files
+- ✅ **Auto Report Generation** - Automatically generates analysis summaries and usage instructions
+- ✅ **Multi-Agent Support** - One-click install to Kimi Code CLI / Claude Code / Cursor / Codex / DeepSeek
 
-## 🔧 环境要求
+## 🔧 Requirements
 
-- AMD GPU (MI100/MI200/MI300 系列或 Radeon RX 7000 系列)
+- AMD GPU (MI100/MI200/MI300 series or Radeon RX 7000 series)
 - ROCm 7.x
 - Python 3.8+
-- PyTorch with ROCm (可选，用于 PyTorch 分析)
+- PyTorch with ROCm (optional, for PyTorch analysis)
+- Triton (optional, for Triton kernel analysis)
 
-## 📦 安装
+## 📦 Installation
 
 ```bash
 git clone https://github.com/your-username/rocprof-skill.git
 cd rocprof-skill
 
-# 添加执行权限
-chmod +x scripts/*.sh examples/*.sh
+# Add execution permissions
+chmod +x install.sh scripts/*.sh examples/*.sh
 
-# 可选: 安装 Python 依赖
+# Optional: Install Python dependencies
 pip install -r requirements.txt
 ```
 
-## 🚀 快速开始
+## 🤖 AI Agent Integration
 
-### 1. 分析 HIP 可执行文件
+The `install.sh` script deploys this skill to various AI coding agents so they can automatically perform GPU profiling analysis.
+
+### Supported Agents
+
+| Agent | Flag | Install Path |
+|-------|------|-------------|
+| **Kimi Code CLI** | `--kimi` | `~/.config/agents/skills/rocprof-hip-profiling/` |
+| **Claude Code** | `--claude` | `~/.claude/skills/rocprof-hip-profiling/` |
+| **Cursor** | `--cursor` | `~/.cursor/rules/rocprof-hip-profiling.md` |
+| **Codex (OpenAI)** | `--codex` | `~/.codex/skills/rocprof-hip-profiling/` |
+| **DeepSeek** | `--deepseek` | `~/.deepseek/skills/rocprof-hip-profiling/` |
+
+### Install to a Single Agent
+
+```bash
+# Install to Kimi Code CLI (default)
+./install.sh
+
+# Install to Claude Code
+./install.sh --claude
+
+# Install to Cursor (user-level rules)
+./install.sh --cursor
+
+# Install to DeepSeek
+./install.sh --deepseek
+
+# Install to Codex
+./install.sh --codex
+```
+
+### Install to Multiple / All Agents
+
+```bash
+# Install to specific agents
+./install.sh --kimi --claude --deepseek
+
+# Install to ALL supported agents at once
+./install.sh --all
+```
+
+### Project-Level Cursor Rules
+
+```bash
+# Install to current project's .cursor/rules/ directory
+./install.sh --project
+```
+
+### Custom Install Path
+
+```bash
+# Install to any custom directory
+./install.sh -t ~/my-skills/rocprof
+```
+
+### Management Commands
+
+```bash
+# Check ROCm environment dependencies
+./install.sh --check
+
+# View installation status across all agents
+./install.sh --status
+
+# Uninstall from all installed locations
+./install.sh --uninstall
+```
+
+### What Gets Installed
+
+For directory-based agents (Kimi / Claude / Codex / DeepSeek):
+
+```
+~/.config/agents/skills/rocprof-hip-profiling/   # (Kimi example)
+├── SKILL.md              # Skill entry file (auto-loaded by agent)
+├── scripts/
+│   ├── kernel_runner.py  # PyTorch model runner
+│   ├── triton_runner.py  # Triton kernel runner
+│   └── rocprof_pytorch.sh
+└── examples/
+    ├── auto_rocprof.sh
+    ├── sample_models/
+    └── sample_triton/
+```
+
+For Cursor: a single `rocprof-hip-profiling.md` rules file is copied to `~/.cursor/rules/`.
+
+### After Installation
+
+Once installed, the AI agent will automatically recognize GPU profiling requests. Just ask naturally:
+
+- *"Profile my PyTorch model on AMD GPU"*
+- *"Analyze the HIP kernel performance of this program"*
+- *"Run Triton kernel profiling on my operators"*
+- *"Help me find GPU performance bottlenecks"*
+
+The agent will use the skill's tools (`kernel_runner.py`, `triton_runner.py`, `auto_rocprof.sh`, `rocprof-sys`) to collect and analyze data.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Analyze HIP Executables
 
 ```bash
 ./examples/auto_rocprof.sh ./your_hip_program my_report
 ```
 
-### 2. 分析 PyTorch 模型
+### 2. Analyze PyTorch Models
 
 ```bash
-# 单个模型
+# Single model
 ./examples/auto_rocprof.sh --pytorch model.py my_model
 
-# 目录中所有模型
+# All models in a directory
 ./examples/auto_rocprof.sh --pytorch-dir ./models all_models
 ```
 
-### 3. 使用 Python 脚本
+### 3. Use Python Scripts
 
 ```bash
-# 单个模型
+# Single model
 python scripts/kernel_runner.py --file 22_Tanh.py
 
-# 结合 rocprof-sys
+# With rocprof-sys
 rocprof-sys-run --trace --use-rocm --rocm-domains kernel_dispatch \
     -o ./results -- python scripts/kernel_runner.py --file 22_Tanh.py
 ```
 
-## 📁 项目结构
+### 4. Triton Kernel Analysis
+
+```bash
+# Run PyTorch op with auto Triton matching
+python scripts/triton_runner.py --pytorch-file 22_Tanh.py
+
+# Run native Triton kernel
+python scripts/triton_runner.py --file examples/sample_triton/tanh_triton.py
+
+# List supported built-in Triton ops
+python scripts/triton_runner.py --list-ops
+```
+
+## 📁 Project Structure
 
 ```
 rocprof-skill/
-├── README.md                    # 项目说明
-├── LICENSE                      # MIT 许可证
-├── requirements.txt             # Python 依赖
-├── ROCPROF_SKILL.md            # 详细技术文档
+├── README.md                    # Project description
+├── SKILL.md                     # AI Agent skill entry file
+├── LICENSE                      # MIT License
+├── requirements.txt             # Python dependencies
+├── install.sh                   # Multi-agent installation script
 │
-├── scripts/                     # 核心脚本
-│   ├── kernel_runner.py        # PyTorch 模型运行器
-│   └── rocprof_pytorch.sh      # PyTorch 专用分析脚本
+├── scripts/                     # Core scripts
+│   ├── kernel_runner.py         # PyTorch model runner
+│   ├── triton_runner.py         # Triton kernel runner
+│   └── rocprof_pytorch.sh       # PyTorch profiling script
 │
-├── examples/                    # 示例脚本
-│   ├── auto_rocprof.sh         # 自动化分析脚本 (通用)
-│   └── sample_models/          # 示例模型
+├── examples/                    # Example scripts
+│   ├── auto_rocprof.sh          # Automated analysis script (general)
+│   ├── sample_models/           # Sample PyTorch models
+│   │   ├── tanh_model.py
+│   │   └── matmul_model.py
+│   └── sample_triton/           # Sample Triton kernels
+│       ├── tanh_triton.py
+│       └── matmul_triton.py
 │
-└── docs/                        # 文档
-    ├── USAGE.md                # 使用指南
-    └── TROUBLESHOOTING.md      # 常见问题
+└── docs/                        # Documentation
+    ├── USAGE.md                 # Usage guide
+    └── TROUBLESHOOTING.md       # Troubleshooting
 ```
 
-## 📊 输出文件说明
+## 📊 Output Files
 
-| 文件 | 说明 |
-|------|------|
-| `perfetto-trace-*.proto` | Perfetto 格式 trace 文件，可在 [ui.perfetto.dev](https://ui.perfetto.dev) 查看 |
-| `wall_clock-*.txt` | 函数级时间统计 |
-| `sampling_percent-*.txt` | 采样百分比分布 |
-| `sampling_wall_clock-*.txt` | 采样墙钟时间 |
-| `metadata-*.json` | 运行元数据 (CPU、GPU、ROCm 版本等) |
-| `functions-*.json` | 函数地址映射 |
+| File | Description |
+|------|-------------|
+| `perfetto-trace-*.proto` | Perfetto format trace file, viewable at [ui.perfetto.dev](https://ui.perfetto.dev) |
+| `wall_clock-*.txt` | Function-level time statistics |
+| `sampling_percent-*.txt` | Sampling percentage distribution |
+| `sampling_wall_clock-*.txt` | Sampling wall clock time |
+| `metadata-*.json` | Run metadata (CPU, GPU, ROCm version, etc.) |
+| `functions-*.json` | Function address mapping |
 
-## 🔍 可视化分析
+## 🔍 Visual Analysis
 
-### 使用 Perfetto UI
+### Using Perfetto UI
 
-1. 打开 [https://ui.perfetto.dev/](https://ui.perfetto.dev/)
-2. 点击 "Open trace file"
-3. 上传生成的 `perfetto-trace-*.proto` 文件
-4. 浏览时间线，分析 kernel 执行时间
+1. Open [https://ui.perfetto.dev/](https://ui.perfetto.dev/)
+2. Click "Open trace file"
+3. Upload the generated `perfetto-trace-*.proto` file
+4. Browse the timeline to analyze kernel execution times
 
-### 命令行查看
+### Command Line Viewing
 
 ```bash
-# 查看时间统计
+# View time statistics
 cat results/wall_clock-*.txt
 
-# 查看采样分布
+# View sampling distribution
 cat results/sampling_percent-*.txt | head -50
 ```
 
-## ⚙️ rocprof-sys 常用参数
+## ⚙️ rocprof-sys Common Parameters
 
 ```bash
-rocprof-sys-run [选项] -- <program>
+rocprof-sys-run [options] -- <program>
 
-# 常用选项
---trace                    # 启用 tracing
---profile                  # 启用 profiling
---use-rocm                 # 启用 ROCm 追踪
---rocm-domains <domains>   # 指定追踪域
+# Common options
+--trace                    # Enable tracing
+--profile                  # Enable profiling
+--use-rocm                 # Enable ROCm tracing
+--rocm-domains <domains>   # Specify tracing domains
 
-# 可用 domains
-kernel_dispatch            # GPU kernel 执行 ✅ (推荐)
-hip_api                    # HIP API 调用
-hip_runtime_api           # HIP 运行时 API
-memory_copy               # 内存拷贝
-memory_allocation         # 内存分配
+# Available domains
+kernel_dispatch            # GPU kernel execution ✅ (Recommended)
+hip_api                    # HIP API calls
+hip_runtime_api           # HIP runtime API
+memory_copy               # Memory copy
+memory_allocation         # Memory allocation
 hsa_api                   # HSA API
 ```
 
-## 🐛 常见问题
+## 🐛 Troubleshooting
 
-### 1. 找不到 rocprof-sys
+### 1. Cannot find rocprof-sys
 
 ```bash
 export PATH=$PATH:/opt/rocm/bin
 ```
 
-### 2. PyTorch 初始化错误
+### 2. PyTorch Initialization Error
 
-如果遇到 `libcaffe2_nvrtc.so` 错误，这是 PyTorch ROCm 版本与 rocprof-sys 的兼容性问题。
-解决方法：确保使用正确的 PyTorch ROCm 版本。
+If you encounter a `libcaffe2_nvrtc.so` error, this is a compatibility issue between PyTorch ROCm version and rocprof-sys.
+Solution: Ensure you are using the correct PyTorch ROCm version.
 
-### 3. 权限问题
+### 3. Permission Issues
 
 ```bash
 sudo usermod -a -G video $USER
-# 重新登录后生效
+# Re-login for changes to take effect
 ```
 
-## 📚 相关资源
+## 📚 Related Resources
 
-- [AMD ROCm 文档](https://rocm.docs.amd.com/)
+- [AMD ROCm Documentation](https://rocm.docs.amd.com/)
 - [rocprofiler-systems GitHub](https://github.com/ROCm/rocprofiler-systems)
 - [Perfetto UI](https://ui.perfetto.dev/)
 - [PyTorch ROCm](https://pytorch.org/get-started/locally/)
 
-## 📄 许可证
+## 📄 License
 
-MIT License - 详见 [LICENSE](LICENSE) 文件
+MIT License - See [LICENSE](LICENSE) file for details
 
-## 🤝 贡献
+## 🤝 Contributing
 
-欢迎提交 Issue 和 Pull Request！
+Issues and Pull Requests are welcome!
 
 ---
-
-Made with ❤️ for AMD GPU developers
